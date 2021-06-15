@@ -9,4 +9,9 @@ services:
             target: VLANG
         ports:
             - "9000:8080"
-        entrypoint: /entry_script.sh
+            - "9001:9001" # lambda runtime api
+        entrypoint: 
+            - "/usr/bin/aws-lambda-rie"
+            - "--log-level"
+            - "debug"
+            #- "/var/task/bootstrap"

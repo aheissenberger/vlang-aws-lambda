@@ -14,7 +14,8 @@ fn  (lr LambdaAPI) response_url(request_id string) string {
 fn main(){
 	println('init V')
 	lambda_api := LambdaAPI{}
-
+println('init V conf:')
+dump(lambda_api)
 	for {
 		println('waiting V')
 		// Get an event. The HTTP request will block until one is received

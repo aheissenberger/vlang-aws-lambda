@@ -1,6 +1,12 @@
 version: "3.8"
 services:
     lambda:
+
+        environment: 
+            - "DOCKER_LAMBDA_STAY_OPEN=1"
         build:
             context: .
             target: VLANG
+        ports:
+            - "9000:8080"
+        entrypoint: /entry_script.sh

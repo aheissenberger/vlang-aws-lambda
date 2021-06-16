@@ -68,12 +68,3 @@ docker cp cf5e54c2de8a:/var/task/lib/ build-serverless/lib/
 http://jamesmcm.github.io/blog/2020/10/24/lambda-runtime/
 https://github.com/awslabs/aws-lambda-cpp
 https://gallery.ecr.aws/lambda/provided
-
-
-./config -Wl,-rpath=/var/task/lib -Wl,--enable-new-dtags --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib && \
-    make && make test && make install
-
-
-
-
-curl https://www.openssl.org/source/openssl-1.1.1k.tar.gz | tar -xz -C /openssl

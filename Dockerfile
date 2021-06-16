@@ -14,24 +14,37 @@ RUN yum update -y && \
     gc-devel 
 
 FROM basesys AS vlang
+ARG vlang_repo_url=https://github.com/vlang/v
+ARG vlang_repo_branch=master
 RUN mkdir -p /var/task/lib
 COPY --from=lambda_rie /aws-lambda-rie/aws-lambda-rie /usr/bin/aws-lambda-rie
 
 # compile V lang
-#RUN git clone https://github.com/vlang/v /vlang
-RUN git clone --branch feature/feat-request-timeout https://github.com/aheissenberger/v.git /vlang
+RUN git clone --branch ${vlang_repo_branch} ${vlang_repo_url} /vlang
 RUN cd /vlang && \
     git pull && \
     make && \
     /vlang/v symlink
 
 RUN mkdir -p /var/task
+
+FROM vlang AS devbuild
+RUN echo "#!/bin/sh" > /build.sh && echo "set -x" >> /build.sh 
+# compile V bootstrap and handler to binary
+RUN echo "cd /src; v -prod -gc boehm_full_opt  lambda_function.v -o /var/task/bootstrap" >> /build.sh
+
+# prepare lambda shared libs
+RUN echo "mkdir -p /var/task/lib" >> /build.sh
+# copy all shared libs which are linked with the binary
+RUN echo "ldd /var/task/bootstrap | egrep -o '/[a-z0-9/\_\.\-]+' | xargs -I{} -P1 cp -v {} /var/task/lib" >> /build.sh
+RUN chmod +x /build.sh
+
+FROM vlang AS prodbuild
 COPY src/ /src
 
 # compile V bootstrap and handler to binary
 RUN cd /src; v -prod -gc boehm_full_opt  lambda_function.v -o /var/task/bootstrap
 
-FROM vlang AS prodbuild
 # prepare lambda shared libs
 RUN mkdir -p /var/task/lib
 # copy all shared libs which are linked with the binary

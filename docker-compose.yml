@@ -4,9 +4,13 @@ services:
 
         environment: 
             - "DOCKER_LAMBDA_STAY_OPEN=1"
+        
         build:
             context: .
-            target: prodbuild
+            target: devbuild
+            # args:
+            #     vlang_repo_url: "https://github.com/aheissenberger/v.git"
+            #     vlang_repo_branch: "feature/feat-request-timeout"
         ports:
             - "9000:8080"
             #- "9001:9001" # lambda runtime api

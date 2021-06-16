@@ -6,6 +6,7 @@ provider:
   lambdaHashingVersion: 20201221
   versionFunctions: false
   region: eu-west-1
+  memorySize: 128
 
   stage: dev
   #region: eu

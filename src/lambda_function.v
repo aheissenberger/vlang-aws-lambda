@@ -4,6 +4,8 @@ import os
 import net.http
 import x.json2
 
+const app_version = '0.0.1'
+
 struct LambdaAPI {
 	api             string = os.getenv('AWS_LAMBDA_RUNTIME_API')
 	invocation_next string = 'http://${os.getenv('AWS_LAMBDA_RUNTIME_API')}/2018-06-01/runtime/invocation/next'
@@ -48,20 +50,20 @@ fn (lr LambdaAPI) error_initialization(category_reason string, error_request Err
 }
 
 fn main() {
-	println('init V 0.0.1')
+	println('init V $app_version')
 	lambda_api := LambdaAPI{}
 	println('init V conf:')
 	dump(lambda_api)
-	// req_incocation_next := http.Request{
-	// 	method: http.Method.get
-	// 	url: lambda_api.invocation_next
-	// 	read_timeout: 100000000
-	// }
+	req_incocation_next := http.Request{
+		method: http.Method.get
+		url: lambda_api.invocation_next
+		read_timeout: -1 //wait for ever
+	}
 	for {
 		println('waiting V')
 		// Get an event. The HTTP request will block until one is received
-		// mut event_data := req_incocation_next.do() or {
-		event_data := http.get(lambda_api.invocation_next) or {
+		event_data := req_incocation_next.do() or {
+		// event_data := http.get(lambda_api.invocation_next) or {
 			panic('invocation api failed: $err')
 			// if err is Error {
 			// 	panic('invocation api failed: $err')
@@ -71,20 +73,18 @@ fn main() {
 		}
 		dump(event_data)
 		if event_data.status_code!= 200 {
-			println('empty request')
-			continue
+			panic('request not 200: ${event_data.status_code}')
 		}
 		println('Extract request ID')
 		// # Extract request ID by scraping response headers received above
 		request_id := event_data.header.get_custom('Lambda-Runtime-Aws-Request-Id', {}) or {
 			// println('Extract request ID: $err')
 			// continue
-			// panic('Extract request ID: $err')
-			lambda_api.error_initialization('runtime.request_id',
-				error_message: 'extracting request id failed'
-				error_type: 'InvalidRequestId'
-			)
-			continue
+			panic('Extract request ID: $err')
+			// lambda_api.error_initialization('runtime.request_id',
+			// 	error_message: 'extracting request id failed'
+			// 	error_type: 'InvalidRequestId'
+			// )
 		}
 		println('run handler request_id: $request_id')
 		// Run the handler function from the script
@@ -106,5 +106,5 @@ fn main() {
 }
 
 fn my_handler(event string, context http.Response) string {
-	return 'ECHO: $event'
+	return 'ECHO $app_version: $event'
 }

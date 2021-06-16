@@ -1,0 +1,23 @@
+service: ah-vlang-test
+
+provider:
+  name: aws
+  runtime: provided
+  lambdaHashingVersion: 20201221
+  region: eu-west-1
+
+  stage: dev
+  #region: eu
+
+package:
+  patterns:
+    - '!./**'
+    - ./lib/**
+    - ./bootstrap
+functions:
+  lambda_trigger:
+    handler: bootstrap
+    events:
+      - httpApi:
+          path: /hello
+          method: get

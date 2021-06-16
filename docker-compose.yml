@@ -6,10 +6,10 @@ services:
             - "DOCKER_LAMBDA_STAY_OPEN=1"
         build:
             context: .
-            target: VLANG
+            target: prod
         ports:
             - "9000:8080"
-            - "9001:9001" # lambda runtime api
+            #- "9001:9001" # lambda runtime api
         entrypoint: 
             - "/usr/bin/aws-lambda-rie"
             - "--log-level"

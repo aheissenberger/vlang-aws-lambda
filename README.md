@@ -47,6 +47,19 @@ v -prod -gc boehm_full_opt src/lambda_function.v -o build/bootstrap
 ```sh
 curl -XPOST "http://localhost:8080/2015-03-31/functions/function/invocations" -d '{"payload":"hello world!"}'
 ```
+
+
+## get libs needed
+```
+docker compose up -d
+docker compose exec lambda sh
+ldd /var/task/bootstrap | cut -d ' ' -f 3 | xargs -I{} -P1 cp -v {} /var/task/lib
+exit
+docker ps # get container id
+docker cp cf5e54c2de8a:/var/task/lib/ build-serverless/lib/
+```
+
+docker cp cf5e54c2de8a:/var/task/lib/ build-serverless/lib/
 ### resources
 * https://docs.aws.amazon.com/lambda/latest/dg/runtimes-walkthrough.html
 * https://github.com/aws/aws-lambda-runtime-interface-emulator
@@ -55,3 +68,12 @@ curl -XPOST "http://localhost:8080/2015-03-31/functions/function/invocations" -d
 http://jamesmcm.github.io/blog/2020/10/24/lambda-runtime/
 https://github.com/awslabs/aws-lambda-cpp
 https://gallery.ecr.aws/lambda/provided
+
+
+./config -Wl,-rpath=/var/task/lib -Wl,--enable-new-dtags --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib && \
+    make && make test && make install
+
+
+
+
+curl https://www.openssl.org/source/openssl-1.1.1k.tar.gz | tar -xz -C /openssl

@@ -4,6 +4,7 @@ provider:
   name: aws
   runtime: provided
   lambdaHashingVersion: 20201221
+  versionFunctions: false
   region: eu-west-1
 
   stage: dev

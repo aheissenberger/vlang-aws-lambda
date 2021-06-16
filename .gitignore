@@ -7,3 +7,4 @@ v/
 build-serverless/bootstrap
 build-serverless/.serverless/
 build-serverless/lib
+build-docker/

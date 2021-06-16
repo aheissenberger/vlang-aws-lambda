@@ -48,7 +48,7 @@ fn (lr LambdaAPI) error_initialization(category_reason string, error_request Err
 }
 
 fn main() {
-	println('init V')
+	println('init V 0.0.1')
 	lambda_api := LambdaAPI{}
 	println('init V conf:')
 	dump(lambda_api)
@@ -62,11 +62,12 @@ fn main() {
 		// Get an event. The HTTP request will block until one is received
 		// mut event_data := req_incocation_next.do() or {
 		event_data := http.get(lambda_api.invocation_next) or {
+			panic('invocation api failed: $err')
 			// if err is Error {
 			// 	panic('invocation api failed: $err')
 			// }
-			println('timeout waiting api invocation_next')
-			continue
+			// println('timeout waiting api invocation_next')
+			// continue
 		}
 		dump(event_data)
 		if event_data.status_code!= 200 {
@@ -87,12 +88,19 @@ fn main() {
 		}
 		println('run handler request_id: $request_id')
 		// Run the handler function from the script
-		response := my_handler(event_data.text, event_data)
+		handler_response := my_handler(event_data.text, event_data)
 
 		// Send the response
 		println('response V')
+
+		// create api gateway response
+		//TODO: detect api gateway event
+		mut api_gateway_response := map[string]json2.Any{}
+		api_gateway_response['statusCode']=200
+		//api_gateway_response['header']=map[string]json2.Any{}
+		api_gateway_response['body']=handler_response
 		// post_response :=
-		http.post(lambda_api.response_url(request_id), response) or { panic('api response: $err') }
+		http.post(lambda_api.response_url(request_id), api_gateway_response.str()) or { panic('api response: $err') }
 		// dump(post_response)
 	}
 }

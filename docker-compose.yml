@@ -6,10 +6,14 @@ services:
             - "DOCKER_LAMBDA_STAY_OPEN=1"
         build:
             context: .
-            target: prod
+            target: prodbuild
         ports:
             - "9000:8080"
             #- "9001:9001" # lambda runtime api
+        volumes: 
+            - "./src:/src:ro"
+            - "./build-docker:/var/task"
+
         entrypoint: 
             - "/usr/bin/aws-lambda-rie"
             - "--log-level"

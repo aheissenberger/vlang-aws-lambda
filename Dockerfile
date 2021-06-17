@@ -26,18 +26,28 @@ RUN cd /vlang && \
     make && \
     /vlang/v symlink
 
-RUN mkdir -p /var/task
-
 FROM vlang AS devbuild
-RUN echo "#!/bin/sh" > /build.sh && echo "set -x" >> /build.sh 
-# compile V bootstrap and handler to binary
-RUN echo "cd /src; v -prod -gc boehm_full_opt  lambda_function.v -o /var/task/bootstrap" >> /build.sh
+ENV VLANG_BUILD_OPTIONS="-prod -gc boehm_full_opt"
+ENV VLANG_LAMBDA_FUNC_NAME="bootstrap.v"
+# create mount points
+RUN mkdir /src && \
+    mkdir -p /var/task
+VOLUME ["/src","/var/task"]
 
-# prepare lambda shared libs
-RUN echo "mkdir -p /var/task/lib" >> /build.sh
-# copy all shared libs which are linked with the binary
-RUN echo "ldd /var/task/bootstrap | egrep -o '/[a-z0-9/\_\.\-]+' | xargs -I{} -P1 cp -v {} /var/task/lib" >> /build.sh
+RUN echo $'#!/bin/sh\n\
+set -e # exit on error \n\
+set -x \n\
+# compile V bootstrap and handler to binary \n\
+cd /src\n\
+rm /var/task/bootstrap\n\
+v ${VLANG_BUILD_OPTIONS} -o /var/task/bootstrap ${VLANG_LAMBDA_FUNC_NAME} \n\
+# prepare lambda shared libs \n\
+# copy all shared libs which are linked with the binary \n\
+rm -fr /var/task/lib\n\
+mkdir -p /var/task/lib\n\
+ldd /var/task/bootstrap | egrep -o '/[a-z0-9/\_\.\-]+' | xargs -I{} -P1 cp -v {} /var/task/lib' > /build.sh
 RUN chmod +x /build.sh
+ENTRYPOINT [ "/build.sh" ]
 
 FROM vlang AS prodbuild
 COPY src/ /src
@@ -54,3 +64,5 @@ FROM public.ecr.aws/lambda/provided:al2 AS prod
 COPY --from=lambda_rie /aws-lambda-rie/aws-lambda-rie /usr/bin/aws-lambda-rie
 COPY --from=prodbuild /var/task/lib/* /var/task/lib/
 COPY --from=vlang /var/task/bootstrap /var/task/bootstrap
+ENTRYPOINT [ "/usr/bin/aws-lambda-rie","--log-level","debug" ]
+EXPOSE 8080

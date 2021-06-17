@@ -1,19 +1,26 @@
 version: "3.8"
 services:
-    lambda:
-
-        environment: 
-            - "DOCKER_LAMBDA_STAY_OPEN=1"
-        
+    build:
+        # environment:
+        #     VLANG_BUILD_OPTIONS: "-prod -gc boehm_full_opt"
+        #     VLANG_LAMBDA_FUNC_NAME: "bootstrap.v"
         build:
             context: .
             target: devbuild
             # args:
             #     vlang_repo_url: "https://github.com/aheissenberger/v.git"
             #     vlang_repo_branch: "feature/feat-request-timeout"
+        volumes: 
+            - "./src:/src:ro"
+            - "./build-docker:/var/task"
+    lambda:
+        environment: 
+            - "DOCKER_LAMBDA_STAY_OPEN=1"
+        build:
+            context: .
+            target: devbuild
         ports:
             - "9000:8080"
-            #- "9001:9001" # lambda runtime api
         volumes: 
             - "./src:/src:ro"
             - "./build-docker:/var/task"

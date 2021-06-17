@@ -1,31 +1,59 @@
-# V lang / AWS Lambda functions / Compiling & Testing
+# vlang / AWS Lambda Custom Runtime Setup
 
-**create lambda bootstrap**
-This is not working
-```sh
-v -os linux src/lambda_function.v -o build/bootstrap
-chmod 755 build/bootstrap
+Use V lang for AWS Lambda functions. This template provides a setup 
+to  compile, test local and deploy to AWS with the [serverless framework](https://www.serverless.com/framework/docs/providers/aws/guide/intro/) which provides easy creation of additional AWS Cloud resources.
+## Installation 
+
+create a project from the template
+
+```bash
+  mkdir my-project && cd $_
+  git init
+  git pull --depth 1 https://github.com/aheissenberger/vlang-aws-lambda.git
 ```
 
-## build local lambda test container
-`docker compose build`
+## Requirements
 
-## run local lambda test container
-`docker compose up -d && docker compose logs -f lambda`
+* `V` language [setup](https://vlang.io)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop)
+* [AWS credentials setup](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html)
 
-## invoke lambda handler
+## Usage
 
+### Write Lambda functions
+
+add the code for your functions to `src/bootstrap.v`
+
+### Build binary for AWS Lambda
+
+```sh
+docker compose run build
+```
+
+### Test local 
+#### A) Docker with AWS Lambda Runtime Emulator
+
+start the AWS Lambda Emulator:
+```sh
+docker compose up lambda my-handler
+```
+
+invoke your function with a AWS Event:
 ```sh
 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"payload":"hello world!"}'
 ```
 
-## shutdown local lambda test container
+Lambda Logs:
+```sh
+docker compose logs -f lambda
+```
 
-`docker compose down`
+#### B) Native go binary with AWS Lambda Runtime Emulator
 
-## local run AWS Lambda Runtime Interface Emulator without docker image
+This is the option you will use if you need to debug your V function with `lldb`or `gdb`.
 
 **build**
+requires local golang development environment
 ```
 git clone git@github.com:aws/aws-lambda-runtime-interface-emulator.git aws-lambda-rie
 cd aws-lambda-rie
@@ -48,23 +76,75 @@ v -prod -gc boehm_full_opt src/lambda_function.v -o build/bootstrap
 curl -XPOST "http://localhost:8080/2015-03-31/functions/function/invocations" -d '{"payload":"hello world!"}'
 ```
 
+### Deploy to AWS Cloud
 
-## get libs needed
-```
-docker compose up -d
-docker compose exec lambda sh
-ldd /var/task/bootstrap | cut -d ' ' -f 3 | xargs -I{} -P1 cp -v {} /var/task/lib
-exit
-docker ps # get container id
-docker cp cf5e54c2de8a:/var/task/lib/ build-serverless/lib/
+1. Modify configuration
+
+check and adapt  `serverless.yml`:
+* `service: <project_name>` should be short and will be part of the lambda function name
+* `region: eu-west-1` adapt [region](https://docs.aws.amazon.com/general/latest/gr/lambda-service.html) to your location
+* `stage: dev`
+for more information check [serverless framework documentation](https://www.serverless.com/framework/docs/providers/aws/guide/serverless.yml/)
+
+2. [Setup AWS credentials](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html)
+
+3. Deploy
+```sh
+docker compose run deploy
 ```
 
-docker cp cf5e54c2de8a:/var/task/lib/ build-serverless/lib/
-### resources
+## Options
+
+### `docker compose run build`
+
+Check the `environment:` and `args:` sections of the `docker-compose.yml` file for possible options.
+
+### `docker compose up lambda`
+
+Check the `entrypoint:` sections of the `docker-compose.yml` file for possible options.
+
+### `docker compose run deploy`
+
+by default this will do:
+`serverless deploy`
+
+you can add any valid [serverless cli command](https://www.serverless.com/framework/docs/providers/aws/cli-reference/) to the command:
+`docker compose run deploy <serverless command>`
+
+remove the whole project from AWS Cloud:
+`docker compose run deploy remove --stage test`
+
+deploy to a different stage as defined in `serverless.yml`:
+`docker compose run deploy deploy --stage test`
+
+
+### Roadmap
+
+ - [X] Build pipeline to create AWS Linux 2 native binaries and bundle shared libraries
+ - [X] Local Lambda Testenvironment
+ - [X] Integrated AWS Cloud deployment with the serverless framework 
+ - [ ] Encapsulate the V lang custome runtime in a v module
+
+### Contribution
+
+Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are greatly appreciated.
+
+1. Fork the Project
+1. Create your Feature Branch (git checkout -b feature/AmazingFeature)
+1. Commit your Changes (git commit -m 'Add some AmazingFeature')
+1. Push to the Branch (git push origin feature/AmazingFeature)
+1. Open a Pull Request
+
+### Resources
+These are resources which helped to land this project
 * https://docs.aws.amazon.com/lambda/latest/dg/runtimes-walkthrough.html
 * https://github.com/aws/aws-lambda-runtime-interface-emulator
 * https://stackoverflow.com/questions/58548580/npm-package-pem-doesnt-seem-to-work-in-aws-lambda-nodejs-10-x-results-in-ope/60232433#60232433
 * https://github.com/softprops/lambda-rust
-http://jamesmcm.github.io/blog/2020/10/24/lambda-runtime/
-https://github.com/awslabs/aws-lambda-cpp
-https://gallery.ecr.aws/lambda/provided
+* http://jamesmcm.github.io/blog/2020/10/24/lambda-runtime/
+* https://github.com/awslabs/aws-lambda-cpp
+* https://gallery.ecr.aws/lambda/provided
+
+### License
+
+Distributed under the "bsd-2-clause" License. See [LICENSE.txt](LICENSE.txt) for more information.

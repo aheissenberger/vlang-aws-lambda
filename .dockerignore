@@ -1,4 +1,6 @@
-build-serverless/
+build/
+build-serverless-package/
+build-aws-linux/
 docker-compose.yml
 *.code-workspace
 .vscode/

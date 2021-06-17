@@ -11,14 +11,20 @@ provider:
   stage: dev
   #region: eu
 
-package:
-  patterns:
-    - '!./**'
-    - ./lib/**
-    - ./bootstrap
+# package:
+#   package:
+#   individually: true
+#   exclude:
+#     - "*/**"
+#     - "*"
+#   include:
+#     - build-aws-linux/**
+
 functions:
   lambda_trigger:
-    handler: bootstrap
+    handler: build-aws-linux/bootstrap
+    package:
+      individually: true
     events:
       - httpApi:
           path: /hello

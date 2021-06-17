@@ -4,7 +4,7 @@ import os
 import net.http
 import x.json2
 
-const app_version = '0.0.3'
+const app_version = '0.0.4'
 
 struct LambdaAPI {
 	api             string = os.getenv('AWS_LAMBDA_RUNTIME_API')

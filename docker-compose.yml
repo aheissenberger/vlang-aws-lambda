@@ -12,7 +12,7 @@ services:
             #     vlang_repo_branch: "feature/feat-request-timeout"
         volumes: 
             - "./src:/src:ro"
-            - "./build-docker:/var/task"
+            - "./build-aws-linux:/var/task"
     lambda:
         environment: 
             - "DOCKER_LAMBDA_STAY_OPEN=1"
@@ -23,10 +23,20 @@ services:
             - "9000:8080"
         volumes: 
             - "./src:/src:ro"
-            - "./build-docker:/var/task"
+            - "./build-aws-linux:/var/task"
 
         entrypoint: 
             - "/usr/bin/aws-lambda-rie"
-            - "--log-level"
-            - "debug"
-            #- "/var/task/bootstrap"
+            # - "--log-level"
+            # - "debug"
+            # - "/var/task/bootstrap"
+    deploy:
+        build:
+            context: ./tools/serverless-framework
+        volumes:
+            - "~/.aws:/root/.aws"
+            - "./build-aws-linux:/opt/app/src:ro"
+            - "./build-serverless-package:/opt/app/build"
+            - "./serverless.yml:/opt/app/config/serverless.yml:ro"
+        entrypoint: 
+            - "/deploy.sh"

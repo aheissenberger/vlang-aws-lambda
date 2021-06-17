@@ -4,7 +4,6 @@ vlang-aws-lambda.code-workspace
 aws-lambda-rie/
 build/
 v/
-build-serverless/bootstrap
-build-serverless/.serverless/
-build-serverless/lib
-build-docker/
+build-serverless/
+build-serverless-package/
+build-aws-linux/

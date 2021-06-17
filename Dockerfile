@@ -39,11 +39,11 @@ set -e # exit on error \n\
 set -x \n\
 # compile V bootstrap and handler to binary \n\
 cd /src\n\
-rm /var/task/bootstrap\n\
+[ -f "/var/task/bootstrap" ] && rm /var/task/bootstrap\n\
 v ${VLANG_BUILD_OPTIONS} -o /var/task/bootstrap ${VLANG_LAMBDA_FUNC_NAME} \n\
 # prepare lambda shared libs \n\
 # copy all shared libs which are linked with the binary \n\
-rm -fr /var/task/lib\n\
+[ -d "/var/task/lib" ] && rm -fr /var/task/lib\n\
 mkdir -p /var/task/lib\n\
 ldd /var/task/bootstrap | egrep -o '/[a-z0-9/\_\.\-]+' | xargs -I{} -P1 cp -v {} /var/task/lib' > /build.sh
 RUN chmod +x /build.sh

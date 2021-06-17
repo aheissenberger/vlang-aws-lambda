@@ -22,7 +22,7 @@ provider:
 
 functions:
   lambda_trigger:
-    handler: build-aws-linux/bootstrap
+    handler: default
     package:
       individually: true
     events:

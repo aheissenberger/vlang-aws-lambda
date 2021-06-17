@@ -3,7 +3,7 @@ services:
     build:
         # environment:
         #     VLANG_BUILD_OPTIONS: "-prod -gc boehm_full_opt"
-        #     VLANG_LAMBDA_FUNC_NAME: "bootstrap.v"
+        #     VLANG_LAMBDA_FUNC_NAME: "main.v"
         build:
             context: .
             target: devbuild
@@ -16,20 +16,15 @@ services:
     lambda:
         environment: 
             - "DOCKER_LAMBDA_STAY_OPEN=1"
+            - "LOG_LEVEL=info"
+            - "HANDLER=default"
         build:
-            context: .
-            target: devbuild
+            context: ./tools/aws-lambda-rie
         ports:
             - "9000:8080"
         volumes: 
             - "./src:/src:ro"
             - "./build-aws-linux:/var/task"
-
-        entrypoint: 
-            - "/usr/bin/aws-lambda-rie"
-            # - "--log-level"
-            # - "debug"
-            # - "/var/task/bootstrap"
     deploy:
         build:
             context: ./tools/serverless-framework

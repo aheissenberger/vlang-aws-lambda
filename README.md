@@ -130,7 +130,7 @@ deploy to a different stage as defined in `serverless.yml`:
  - [X] Build pipeline to create AWS Linux 2 native binaries and bundle shared libraries
  - [X] Local Lambda Testenvironment
  - [X] Integrated AWS Cloud deployment with the serverless framework 
- - [ ] Encapsulate the V lang custome runtime in a v module
+ - [X] Encapsulate the V lang custome runtime in a v module
  - [ ] Include example which uses the AWS C++ SDK
 
 ### Contribution

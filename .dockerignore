@@ -1,6 +1,7 @@
 build/
 build-serverless-package/
 build-aws-linux/
+aws-lambda-rie/
 docker-compose.yml
 *.code-workspace
 .vscode/

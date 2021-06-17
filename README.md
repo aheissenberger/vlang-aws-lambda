@@ -16,6 +16,7 @@ create a project from the template
 
 * `V` language [setup](https://vlang.io)
 * [Docker Desktop](https://www.docker.com/products/docker-desktop)
+  **Hint:** This project uses the latest version of Docker Desktop. If your version does not provide `docker compose` replace all mentioned commands with `docker-compose`.
 * [AWS credentials setup](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html)
 
 ## Usage
@@ -33,9 +34,9 @@ docker compose run build
 ### Test local 
 #### A) Docker with AWS Lambda Runtime Emulator
 
-start the AWS Lambda Emulator:
+start the AWS Lambda Emulator as background process:
 ```sh
-docker compose up lambda my-handler
+docker compose up -d lambda my-handler
 ```
 
 invoke your function with a AWS Event:
@@ -47,6 +48,12 @@ Lambda Logs:
 ```sh
 docker compose logs -f lambda
 ```
+
+shutdown background process:
+```sh
+docker compose down
+```
+**Hint:** you need to restart if you built new binaries!
 
 #### B) Native go binary with AWS Lambda Runtime Emulator
 
@@ -124,6 +131,7 @@ deploy to a different stage as defined in `serverless.yml`:
  - [X] Local Lambda Testenvironment
  - [X] Integrated AWS Cloud deployment with the serverless framework 
  - [ ] Encapsulate the V lang custome runtime in a v module
+ - [ ] Include example which uses the AWS C++ SDK
 
 ### Contribution
 

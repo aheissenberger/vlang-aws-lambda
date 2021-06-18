@@ -9,16 +9,6 @@ provider:
   memorySize: 128
 
   stage: dev
-  #region: eu
-
-# package:
-#   package:
-#   individually: true
-#   exclude:
-#     - "*/**"
-#     - "*"
-#   include:
-#     - build-aws-linux/**
 
 functions:
   lambda_trigger:

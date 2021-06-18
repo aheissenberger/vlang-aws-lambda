@@ -13,7 +13,9 @@ import x.json2
 // 	handlers map[string]Handler
 // }
 
-pub type HandlerFunction = fn (string, string) string
+pub type EventType = json2.Any
+
+pub type HandlerFunction = fn (json2.Any, Context) string
 
 pub struct BootstrapConfig {
 pub mut:
@@ -21,11 +23,9 @@ pub mut:
 }
 
 pub fn (b BootstrapConfig) process() {
-	api := new_lambda_api()
+	mut api := new_lambda_api()
 
-	handler := b.handlers[api.environment.handler] or {
-		panic('handler "$api.environment.handler" not found!')
-	}
+	handler := b.handlers[api.handler] or { panic('handler "$api.handler" not found!') }
 
 	for {
 		// Get an event. The HTTP request will block until one is received
@@ -34,18 +34,26 @@ pub fn (b BootstrapConfig) process() {
 		if event_data.status_code != 200 {
 			panic('request not 200: $event_data.status_code')
 		}
+		api.update_context(event_data.header) or { panic('Extract request ID: $err') }
 		// # Extract request ID by scraping response headers received above
-		request_id := event_data.header.get_custom('Lambda-Runtime-Aws-Request-Id', {}) or {
-			panic('Extract request ID: $err')
-		}
-		// Run the handler function from the script
-		handler_response := handler(event_data.text, 'context')
+		aws_request_id := api.context.aws_request_id
 
-		api.response(request_id, handler_response) or { panic('response: $err') }
+		content_type := event_data.header.get(http.CommonHeader.content_type) or {
+			panic('response without content type!')
+		}
+		if content_type != 'application/json' {
+			panic('expected content type application/json - got "$content_type"')
+		}
+		event := json2.raw_decode(event_data.text) or { panic('json decode $err') }
+
+		// Run the handler function from the script
+		handler_response := handler(event, api.context)
+
+		api.response(aws_request_id, handler_response) or { panic('response: $err') }
 	}
 }
 
-pub struct LambdaRuntimeEnvironment {
+struct LambdaRuntimeEnvironment {
 	aws_lambda_runtime_api          string // AWS_LAMBDA_RUNTIME_API – (Custom runtime) The host and port of the runtime API.
 	handler                         string // _HANDLER – The handler location configured on the function.
 	aws_region                      string // AWS_REGION – The AWS Region where the Lambda function is executed.
@@ -54,16 +62,32 @@ pub struct LambdaRuntimeEnvironment {
 	aws_lambda_function_memory_size string // AWS_LAMBDA_FUNCTION_MEMORY_SIZE – The amount of memory available to the function in MB.
 }
 
-fn get_lambda_runtime_environment() LambdaRuntimeEnvironment {
-	return LambdaRuntimeEnvironment{
-		aws_lambda_runtime_api: os.getenv('AWS_LAMBDA_RUNTIME_API')
-		handler: os.getenv('_HANDLER')
-		aws_region: os.getenv('AWS_REGION')
-		aws_execution_env: os.getenv('AWS_EXECUTION_ENV')
-		aws_lambda_function_name: os.getenv('AWS_LAMBDA_FUNCTION_NAME')
-		aws_lambda_function_memory_size: os.getenv('AWS_LAMBDA_FUNCTION_MEMORY_SIZE')
-	}
+pub struct Context {
+	// once on init from environment
+	memory_limit_in_mb int    = os.getenv('AWS_LAMBDA_FUNCTION_MEMORY_SIZE').int() // The amount of memory available to the function in MB.
+	function_name      string = os.getenv('AWS_LAMBDA_FUNCTION_NAME') // The name of the function.
+	function_version   string = os.getenv('AWS_LAMBDA_FUNCTION_VERSION') // The version of the function being executed.
+	log_stream_name    string = os.getenv('AWS_LAMBDA_LOG_STREAM_NAME') // The name of the Amazon CloudWatch Logs group and stream for the function.
+	log_group_name     string = os.getenv('AWS_LAMBDA_LOG_GROUP_NAME')
+pub mut: // on every request from header
+	// client_context       ClientContextType   // The client context sent by the AWS Mobile SDK with the invocation request. This value is returned by the Lambda Runtime APIs as a header. This value is populated only if the invocation request originated from an AWS Mobile SDK or an SDK that attached the client context information to the request.
+	// identity             CognitoIdentityType // The information of the Cognito identity that sent the invocation request to the Lambda service. This value is returned by the Lambda Runtime APIs in a header and it's only populated if the invocation request was performed with AWS credentials federated through the Cognito identity service.
+	deadline             i64    // TODO: implement deadline
+	invoked_function_arn string // he fully qualified ARN (Amazon Resource Name) for the function invocation event. This value is returned by the Lambda Runtime APIs as a header.
+	aws_request_id       string // The AWS request ID for the current invocation event. This value is returned by the Lambda Runtime APIs as a header.
+	xray_trace_id        string // The X-Ray trace ID for the current invocation. This value is returned by the Lambda Runtime APIs as a header. Developers can use this value with the AWS SDK to create new, custom sub-segments to the current invocation.
 }
+
+// TODO: implement ClientContext
+// pub struct ClientContext {
+// }
+
+// type ClientContextType = ClientContext | None
+
+// TODO: implement CognitoIdentity
+// pub struct CognitoIdentity {}
+
+// type CognitoIdentityType = CognitoIdentity | None
 
 struct ErrorRequest {
 	error_message string
@@ -84,22 +108,28 @@ pub fn (er ErrorRequest) to_json() string {
 }
 
 struct LambdaAPI {
-	environment LambdaRuntimeEnvironment
+	aws_lambda_runtime_api string
+	handler                string
 	// invocation_next string = 'http://${os.getenv('AWS_LAMBDA_RUNTIME_API')}/2018-06-01/runtime/invocation/next'
 	req_incocation_next http.Request
+mut:
+	context Context
 }
 
 fn (lr LambdaAPI) response_url(request_id string) string {
-	return 'http://$lr.environment.aws_lambda_runtime_api/2018-06-01/runtime/invocation/$request_id/response'
+	return 'http://$lr.aws_lambda_runtime_api/2018-06-01/runtime/invocation/$request_id/response'
 }
 
 fn new_lambda_api() LambdaAPI {
-	environment := get_lambda_runtime_environment()
+	aws_lambda_runtime_api := os.getenv('AWS_LAMBDA_RUNTIME_API')
+	handler := os.getenv('_HANDLER')
 	return LambdaAPI{
-		environment: environment
+		aws_lambda_runtime_api: aws_lambda_runtime_api
+		handler: handler
+		context: Context{}
 		req_incocation_next: http.Request{
 			method: http.Method.get
-			url: 'http://$environment.aws_lambda_runtime_api/2018-06-01/runtime/invocation/next'
+			url: 'http://$aws_lambda_runtime_api/2018-06-01/runtime/invocation/next'
 			read_timeout: -1 // wait for ever
 		}
 	}
@@ -110,16 +140,21 @@ fn (lr LambdaAPI) invocation_next() ?http.Response {
 }
 
 fn (lr LambdaAPI) response(request_id string, body string) ? {
-	http.post('http://$lr.environment.aws_lambda_runtime_api/2018-06-01/runtime/invocation/$request_id/response',
+	http.post('http://$lr.aws_lambda_runtime_api/2018-06-01/runtime/invocation/$request_id/response',
 		body) ?
+}
+
+fn (mut lr LambdaAPI) update_context(header http.Header) ? {
+	lr.context.invoked_function_arn = header.get_custom('Lambda-Runtime-Invoked-Function-Arn') ?
+	lr.context.aws_request_id = header.get_custom('Lambda-Runtime-Aws-Request-Id') ?
+	lr.context.xray_trace_id = header.get_custom('X-Amzn-Trace-Id') or { '' }
 }
 
 fn (lr LambdaAPI) error_initialization(category_reason string, error_request ErrorRequest) {
 	mut header := http.new_header(key: .content_type, value: 'application/json')
 	header.add_custom('Lambda-Runtime-Function-Error-Type', category_reason) or { panic(err) }
-	println('http://$lr.environment.aws_lambda_runtime_api/runtime/init/error')
-	resp := http.fetch('http://$lr.environment.aws_lambda_runtime_api/runtime/init/error',
-		http.FetchConfig{
+	println('http://$lr.aws_lambda_runtime_api/runtime/init/error')
+	resp := http.fetch('http://$lr.aws_lambda_runtime_api/runtime/init/error', http.FetchConfig{
 		method: http.Method.post
 		header: header
 		data: json2.encode<ErrorRequest>(error_request)

@@ -3,7 +3,7 @@ module main
 import bootstrap
 import x.json2
 
-const app_version = '0.0.5'
+const app_version = '0.0.7'
 
 fn main() {
 	runtime := bootstrap.BootstrapConfig{
@@ -15,8 +15,11 @@ fn main() {
 	runtime.process()
 }
 
-fn my_handler(event string, context string) string {
-	handler_response := 'ECHO $app_version: $event'
+fn my_handler(event json2.Any, context bootstrap.Context) string {
+	// dump(event)
+	// dump(context)
+	event_txt:=event.str()
+	handler_response := 'ECHO $app_version \n {"event":$event_txt},\n"context":${context}'
 	// create api gateway response
 	// TODO: detect api gateway event
 	mut api_gateway_response := map[string]json2.Any{}

@@ -161,6 +161,7 @@ fn (mut lr LambdaAPI) update_context(header http.Header) ? {
 	}
 }
 
+// https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html#runtimes-api-initerror
 fn (lr LambdaAPI) error_initialization(category_reason string, error_request ErrorRequest) {
 	mut header := http.new_header(key: .content_type, value: 'application/json')
 	header.add_custom('Lambda-Runtime-Function-Error-Type', category_reason) or { panic(err) }
@@ -173,6 +174,23 @@ fn (lr LambdaAPI) error_initialization(category_reason string, error_request Err
 	if resp.status_code != 202 {
 		println(resp.text)
 		panic('error error_initialization status_code: $resp.status_code')
+	}
+	exit(1)
+}
+
+// https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html#runtimes-api-initerror
+fn (lr LambdaAPI) error_invocation(category_reason string, error_request ErrorRequest, request_id string) {
+	mut header := http.new_header(key: .content_type, value: 'application/json')
+	header.add_custom('Lambda-Runtime-Function-Error-Type', category_reason) or { panic(err) }
+	println('http://$lr.aws_lambda_runtime_api/runtime/init/error')
+	resp := http.fetch('http://$lr.aws_lambda_runtime_api/runtime/invocation/$request_id/error', http.FetchConfig{
+		method: http.Method.post
+		header: header
+		data: json2.encode<ErrorRequest>(error_request)
+	}) or { panic('error post error_invocation: $err') }
+	if resp.status_code != 202 {
+		println(resp.text)
+		panic('error error_invocation status_code: $resp.status_code')
 	}
 	exit(1)
 }

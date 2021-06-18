@@ -1,5 +1,6 @@
 service: ah-vlang-test
 
+configValidationMode: error
 provider:
   name: aws
   runtime: provided
@@ -9,12 +10,25 @@ provider:
   memorySize: 128
 
   stage: dev
+  
+
+layers:
+  libraries:
+    path: ./
+    package:
+      patterns:
+        - '!bootstrap'
+
 
 functions:
   lambda_trigger:
     handler: default
+    layers:
+      - { Ref: LibrariesLambdaLayer }
     package:
       individually: true
+      patterns:
+        - '!lib/**'
     events:
       - httpApi:
           path: /hello

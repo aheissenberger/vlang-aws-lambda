@@ -70,24 +70,24 @@ pub struct Context {
 	log_stream_name    string = os.getenv('AWS_LAMBDA_LOG_STREAM_NAME') // The name of the Amazon CloudWatch Logs group and stream for the function.
 	log_group_name     string = os.getenv('AWS_LAMBDA_LOG_GROUP_NAME')
 pub mut: // on every request from header
-	// client_context       ClientContextType   // The client context sent by the AWS Mobile SDK with the invocation request. This value is returned by the Lambda Runtime APIs as a header. This value is populated only if the invocation request originated from an AWS Mobile SDK or an SDK that attached the client context information to the request.
-	// identity             CognitoIdentityType // The information of the Cognito identity that sent the invocation request to the Lambda service. This value is returned by the Lambda Runtime APIs in a header and it's only populated if the invocation request was performed with AWS credentials federated through the Cognito identity service.
-	deadline             i64    // TODO: implement deadline
-	invoked_function_arn string // he fully qualified ARN (Amazon Resource Name) for the function invocation event. This value is returned by the Lambda Runtime APIs as a header.
-	aws_request_id       string // The AWS request ID for the current invocation event. This value is returned by the Lambda Runtime APIs as a header.
-	xray_trace_id        string // The X-Ray trace ID for the current invocation. This value is returned by the Lambda Runtime APIs as a header. Developers can use this value with the AWS SDK to create new, custom sub-segments to the current invocation.
+	client_context       json2.Any // The client context sent by the AWS Mobile SDK with the invocation request. This value is returned by the Lambda Runtime APIs as a header. This value is populated only if the invocation request originated from an AWS Mobile SDK or an SDK that attached the client context information to the request.
+	identity             json2.Any // The information of the Cognito identity that sent the invocation request to the Lambda service. This value is returned by the Lambda Runtime APIs in a header and it's only populated if the invocation request was performed with AWS credentials federated through the Cognito identity service.
+	deadline             i64       // Lambda-Runtime-Deadline-Ms
+	invoked_function_arn string    // he fully qualified ARN (Amazon Resource Name) for the function invocation event. This value is returned by the Lambda Runtime APIs as a header.
+	aws_request_id       string    // The AWS request ID for the current invocation event. This value is returned by the Lambda Runtime APIs as a header.
+	xray_trace_id        string    // The X-Ray trace ID for the current invocation. This value is returned by the Lambda Runtime APIs as a header. Developers can use this value with the AWS SDK to create new, custom sub-segments to the current invocation.
 }
 
 // TODO: implement ClientContext
 // pub struct ClientContext {
 // }
 
-// type ClientContextType = ClientContext | None
+// type ClientContextType = json2.Any | none
 
 // TODO: implement CognitoIdentity
 // pub struct CognitoIdentity {}
 
-// type CognitoIdentityType = CognitoIdentity | None
+// type CognitoIdentityType = json2.Any | none
 
 struct ErrorRequest {
 	error_message string
@@ -147,7 +147,18 @@ fn (lr LambdaAPI) response(request_id string, body string) ? {
 fn (mut lr LambdaAPI) update_context(header http.Header) ? {
 	lr.context.invoked_function_arn = header.get_custom('Lambda-Runtime-Invoked-Function-Arn') ?
 	lr.context.aws_request_id = header.get_custom('Lambda-Runtime-Aws-Request-Id') ?
-	lr.context.xray_trace_id = header.get_custom('X-Amzn-Trace-Id') or { '' }
+	if trace_id := header.get_custom('X-Amzn-Trace-Id') {
+		lr.context.xray_trace_id = trace_id
+	}
+	if deadline := header.get_custom('Lambda-Runtime-Deadline-Ms') {
+		lr.context.deadline = deadline.i64()
+	}
+	if cc := header.get_custom('Lambda-Runtime-Client-Context') {
+		lr.context.client_context = json2.raw_decode(cc) ?
+	}
+	if identity := header.get_custom('Lambda-Runtime-Cognito-Identity') {
+		lr.context.identity = json2.raw_decode(identity) ?
+	}
 }
 
 fn (lr LambdaAPI) error_initialization(category_reason string, error_request ErrorRequest) {

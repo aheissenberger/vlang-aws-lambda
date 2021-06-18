@@ -28,7 +28,7 @@ add the code for your functions to `src/bootstrap.v`
 ### Build binary for AWS Lambda
 
 ```sh
-docker compose run build
+docker compose run --rm build
 ```
 
 ### Test local 
@@ -97,7 +97,7 @@ for more information check [serverless framework documentation](https://www.serv
 
 3. Deploy
 ```sh
-docker compose run deploy
+docker compose run --rm deploy
 ```
 
 ## Options

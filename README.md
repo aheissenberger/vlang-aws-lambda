@@ -124,6 +124,27 @@ remove the whole project from AWS Cloud:
 deploy to a different stage as defined in `serverless.yml`:
 `docker compose run deploy deploy --stage test`
 
+## Bootstrap API
+
+The bootstrap module will handle the communication to the AWS Runtime API.
+The only information which needs to be provided is a mapping of handler names to handler functions.
+
+```v
+fn main() {
+	runtime := bootstrap.BootstrapConfig{
+		handlers: map{
+			'default': my_handler
+		}
+	}
+
+	runtime.process()
+}
+
+fn my_handler(event json2.Any, context bootstrap.Context) string {
+  return result
+}
+```
+If only one function is needed use the name 'default' which is allready used as a default for the local lambda test setup.
 
 ### Roadmap
 
@@ -152,6 +173,13 @@ These are resources which helped to land this project
 * http://jamesmcm.github.io/blog/2020/10/24/lambda-runtime/
 * https://github.com/awslabs/aws-lambda-cpp
 * https://gallery.ecr.aws/lambda/provided
+
+when extra tools from centos epel required:
+```
+RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
+    yum update -y && \
+    yum install -y inotify-tools
+```
 
 ### License
 

@@ -152,6 +152,7 @@ If only one function is needed use the name 'default' which is allready used as 
  - [X] Local Lambda Testenvironment
  - [X] Integrated AWS Cloud deployment with the serverless framework 
  - [X] Encapsulate the V lang custome runtime in a v module
+ - [X] Deploy all libraries in an extra layer
  - [ ] Include example which uses the AWS C++ SDK
 
 ### Contribution

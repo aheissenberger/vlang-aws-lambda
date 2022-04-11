@@ -166,7 +166,8 @@ fn (lr LambdaAPI) error_initialization(category_reason string, error_request Err
 	mut header := http.new_header(key: .content_type, value: 'application/json')
 	header.add_custom('Lambda-Runtime-Function-Error-Type', category_reason) or { panic(err) }
 	println('http://$lr.aws_lambda_runtime_api/runtime/init/error')
-	resp := http.fetch('http://$lr.aws_lambda_runtime_api/runtime/init/error', http.FetchConfig{
+	resp := http.fetch(http.FetchConfig{
+		url: 'http://$lr.aws_lambda_runtime_api/runtime/init/error'
 		method: http.Method.post
 		header: header
 		data: json2.encode<ErrorRequest>(error_request)
@@ -183,7 +184,8 @@ fn (lr LambdaAPI) error_invocation(category_reason string, error_request ErrorRe
 	mut header := http.new_header(key: .content_type, value: 'application/json')
 	header.add_custom('Lambda-Runtime-Function-Error-Type', category_reason) or { panic(err) }
 	println('http://$lr.aws_lambda_runtime_api/runtime/init/error')
-	resp := http.fetch('http://$lr.aws_lambda_runtime_api/runtime/invocation/$request_id/error', http.FetchConfig{
+	resp := http.fetch(http.FetchConfig{
+		url: 'http://$lr.aws_lambda_runtime_api/runtime/invocation/$request_id/error'
 		method: http.Method.post
 		header: header
 		data: json2.encode<ErrorRequest>(error_request)

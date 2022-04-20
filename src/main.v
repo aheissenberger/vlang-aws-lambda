@@ -7,7 +7,7 @@ const app_version = '0.0.8'
 
 fn main() {
 	runtime := bootstrap.BootstrapConfig{
-		handlers: map{
+		handlers: {
 			'default': my_handler
 		}
 	}
